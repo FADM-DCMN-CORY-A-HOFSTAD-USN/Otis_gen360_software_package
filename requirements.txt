@@ -1,0 +1,8 @@
+# Industrial Networking
+pyModbusTCP>=0.2.0
+
+# Command-Line Interfaces
+typer>=0.9.0
+
+# Cloud & API Communication
+requests>=2.31.0
