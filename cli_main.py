@@ -21,6 +21,8 @@ import json
 import threading
 import requests
 from pyModbusTCP.server import ModbusServer, DataBank
+import asyncio
+from otis_univac_bridge import OtisAegisBridge
 
 # =====================================================================
 # SYSTEM STRUCTURAL CHARACTERISTICS & CONSTANTS
@@ -407,6 +409,43 @@ class SpaceNeedleMasterController:
         # I. Stream real-time metrics up to the Otis ONE IoT Cloud platform
         self.cloud_streamer.stream_telemetry(self.active_state, False, target_v, w_lower, w_upper, local_wind)
 
+async def otis_control_loop():
+    # 1. Initialize the Bridge targeting the central Univac Aegis ingestion node
+    aegis_endpoint = "http://api.revolutionary.technology:8000/univac-aegis/ingest"
+    bridge = OtisAegisBridge(aegis_url=aegis_endpoint, node_id="Otis-Gen360-Seattle-Bldg1-CarA")
+    await bridge.initialize()
+
+    try:
+        while True:
+            # 2. Simulate reading the active hardware registers from the Otis drive unit
+            # In production, this pulls from your local CAN bus or Gen360 API wrapper
+            current_car_state = {
+                "current_floor": 14,
+                "velocity_mps": 2.5,
+                "door_state": "LOCKED",
+                "status": "MOVING", 
+                "load_kg": 450.0
+            }
+
+            # 3. Fire the broadcast asynchronously
+            # This executes instantly and returns control to the elevator motor loop
+            await bridge.dispatch_telemetry(current_car_state)
+
+            # Simulated hardware polling rate (e.g., 5Hz)
+            await asyncio.sleep(0.2)
+
+            # Simulate an emergency Fire Recall event triggering
+            # current_car_state["status"] = "FIRE_RECALL"
+            # await bridge.dispatch_telemetry(current_car_state)
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # 4. Gracefully close the sockets
+        await bridge.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(otis_control_loop())
     def _process_continuous_evacuation_loop(self):
         """Continuous Emergency Loop: Moves people out of the observation deck until stopped."""
         print("\n" + "!" * 80)
