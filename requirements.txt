@@ -6,3 +6,6 @@ typer>=0.9.0
 
 # Cloud & API Communication
 requests>=2.31.0
+
+aiohttp>=3.8.0
+asyncio
